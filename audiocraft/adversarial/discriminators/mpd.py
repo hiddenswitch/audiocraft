@@ -50,10 +50,10 @@ class PeriodDiscriminator(nn.Module):
             out_chs = min(filters * (filters_scale ** (i + 1)), max_filters)
             eff_stride = 1 if i == self.n_layers - 1 else stride
             self.convs.append(NormConv2d(in_chs, out_chs, kernel_size=(kernel_sizes[0], 1), stride=(eff_stride, 1),
-                                         padding=((kernel_sizes[0] - 1) // 2, 0), norm=norm))
+                                         padding=((kernel_sizes[0] - 1) // 2, 0), norm=norm, padding_mode='circular'))
             in_chs = out_chs
         self.conv_post = NormConv2d(in_chs, out_channels, kernel_size=(kernel_sizes[1], 1), stride=1,
-                                    padding=((kernel_sizes[1] - 1) // 2, 0), norm=norm)
+                                    padding=((kernel_sizes[1] - 1) // 2, 0), norm=norm, padding_mode='circular')
 
     def forward(self, x: torch.Tensor):
         fmap = []

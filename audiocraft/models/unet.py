@@ -40,12 +40,12 @@ class ResBlock(nn.Module):
         Conv = nn.Conv1d
         Drop = nn.Dropout1d
         self.norm1 = nn.GroupNorm(norm_groups, channels)
-        self.conv1 = Conv(channels, channels, kernel, 1, padding, dilation=dilation)
+        self.conv1 = Conv(channels, channels, kernel, 1, padding, dilation=dilation, padding_mode='circular')
         self.activation1 = activation()
         self.dropout1 = Drop(dropout)
 
         self.norm2 = nn.GroupNorm(norm_groups, channels)
-        self.conv2 = Conv(channels, channels, kernel, 1, padding, dilation=dilation)
+        self.conv2 = Conv(channels, channels, kernel, 1, padding, dilation=dilation, padding_mode='circular')
         self.activation2 = activation()
         self.dropout2 = Drop(dropout)
 
@@ -84,7 +84,7 @@ class EncoderLayer(nn.Module):
         super().__init__()
         padding = (kernel - stride) // 2
         Conv = nn.Conv1d
-        self.conv = Conv(chin, chout, kernel, stride, padding, bias=False)
+        self.conv = Conv(chin, chout, kernel, stride, padding, bias=False, padding_mode="circular")
         self.norm = nn.GroupNorm(norm_groups, chout)
         self.activation = activation()
         self.res_blocks = nn.Sequential(
@@ -95,7 +95,7 @@ class EncoderLayer(nn.Module):
         B, C, T = x.shape
         stride, = self.conv.stride
         pad = (stride - (T % stride)) % stride
-        x = F.pad(x, (0, pad))
+        x = F.pad(x, (0, pad), mode='circular')
 
         x = self.conv(x)
         x = self.norm(x)

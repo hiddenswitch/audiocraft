@@ -647,7 +647,7 @@ class ChromaStemConditioner(WaveformConditioner):
         target_length = int(frame_rate * wav_length / self.sample_rate)
         index = int(frame_rate * seek_time)
         out = full_chroma[index: index + target_length]
-        out = F.pad(out[None], (0, 0, 0, target_length - out.shape[0]))[0]
+        out = F.pad(out[None], (0, 0, 0, target_length - out.shape[0]), mode="circular")[0]
         return out.to(self.device)
 
     @torch.no_grad()

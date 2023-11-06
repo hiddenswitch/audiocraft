@@ -19,13 +19,13 @@ They also support overriding some parameters, in particular the device and dtype
 of the returned model.
 """
 
-from pathlib import Path
-from huggingface_hub import hf_hub_download
-import typing as tp
 import os
+import typing as tp
+from pathlib import Path
 
-from omegaconf import OmegaConf, DictConfig
 import torch
+from huggingface_hub import hf_hub_download
+from omegaconf import OmegaConf, DictConfig
 
 from . import builders
 from .encodec import CompressionModel
@@ -36,10 +36,10 @@ def get_audiocraft_cache_dir() -> tp.Optional[str]:
 
 
 def _get_state_dict(
-    file_or_url_or_id: tp.Union[Path, str],
-    filename: tp.Optional[str] = None,
-    device='cpu',
-    cache_dir: tp.Optional[str] = None,
+        file_or_url_or_id: tp.Union[Path, str],
+        filename: tp.Optional[str] = None,
+        device='cpu',
+        cache_dir: tp.Optional[str] = None,
 ):
     if cache_dir is None:
         cache_dir = get_audiocraft_cache_dir()
@@ -74,6 +74,7 @@ def load_compression_model(file_or_url_or_id: tp.Union[Path, str], device='cpu',
         return CompressionModel.get_pretrained(pkg['pretrained'], device=device)
     cfg = OmegaConf.create(pkg['xp.cfg'])
     cfg.device = str(device)
+    cfg['seanet']['pad_mode'] = 'circular'
     model = builders.get_compression_model(cfg)
     model.load_state_dict(pkg['best_state'])
     model.eval()

@@ -13,7 +13,6 @@ from torch import nn
 from torch.nn import functional as F
 from torch.nn.utils import spectral_norm, weight_norm
 
-
 CONV_NORMALIZATIONS = frozenset(['none', 'weight_norm', 'spectral_norm',
                                  'time_group_norm'])
 
@@ -65,7 +64,7 @@ def pad_for_conv1d(x: torch.Tensor, kernel_size: int, stride: int, padding_total
             1 2 3 4         # once you removed padding, we are missing one time step !
     """
     extra_padding = get_extra_padding_for_conv1d(x, kernel_size, stride, padding_total)
-    return F.pad(x, (0, extra_padding))
+    return F.pad(x, (0, extra_padding), mode='circular')
 
 
 def pad1d(x: torch.Tensor, paddings: tp.Tuple[int, int], mode: str = 'constant', value: float = 0.):
@@ -75,6 +74,7 @@ def pad1d(x: torch.Tensor, paddings: tp.Tuple[int, int], mode: str = 'constant',
     length = x.shape[-1]
     padding_left, padding_right = paddings
     assert padding_left >= 0 and padding_right >= 0, (padding_left, padding_right)
+    assert mode == 'circular'
     if mode == 'reflect':
         max_pad = max(padding_left, padding_right)
         extra_pad = 0
@@ -101,10 +101,12 @@ class NormConv1d(nn.Module):
     """Wrapper around Conv1d and normalization applied to this conv
     to provide a uniform interface across normalization approaches.
     """
+
     def __init__(self, *args, causal: bool = False, norm: str = 'none',
                  norm_kwargs: tp.Dict[str, tp.Any] = {}, **kwargs):
         super().__init__()
-        self.conv = apply_parametrization_norm(nn.Conv1d(*args, **kwargs), norm)
+        # todo: put this somewhere better
+        self.conv = apply_parametrization_norm(nn.Conv1d(*args, **kwargs, padding_mode="circular"), norm)
         self.norm = get_norm_module(self.conv, causal, norm, **norm_kwargs)
         self.norm_type = norm
 
@@ -118,9 +120,10 @@ class NormConv2d(nn.Module):
     """Wrapper around Conv2d and normalization applied to this conv
     to provide a uniform interface across normalization approaches.
     """
+
     def __init__(self, *args, norm: str = 'none', norm_kwargs: tp.Dict[str, tp.Any] = {}, **kwargs):
         super().__init__()
-        self.conv = apply_parametrization_norm(nn.Conv2d(*args, **kwargs), norm)
+        self.conv = apply_parametrization_norm(nn.Conv2d(*args, **kwargs, padding_mode='circular'), norm)
         self.norm = get_norm_module(self.conv, causal=False, norm=norm, **norm_kwargs)
         self.norm_type = norm
 
@@ -134,10 +137,11 @@ class NormConvTranspose1d(nn.Module):
     """Wrapper around ConvTranspose1d and normalization applied to this conv
     to provide a uniform interface across normalization approaches.
     """
+
     def __init__(self, *args, causal: bool = False, norm: str = 'none',
                  norm_kwargs: tp.Dict[str, tp.Any] = {}, **kwargs):
         super().__init__()
-        self.convtr = apply_parametrization_norm(nn.ConvTranspose1d(*args, **kwargs), norm)
+        self.convtr = apply_parametrization_norm(nn.ConvTranspose1d(*args, **kwargs, padding_mode='circular'), norm)
         self.norm = get_norm_module(self.convtr, causal, norm, **norm_kwargs)
         self.norm_type = norm
 
@@ -151,6 +155,7 @@ class NormConvTranspose2d(nn.Module):
     """Wrapper around ConvTranspose2d and normalization applied to this conv
     to provide a uniform interface across normalization approaches.
     """
+
     def __init__(self, *args, norm: str = 'none', norm_kwargs: tp.Dict[str, tp.Any] = {}, **kwargs):
         super().__init__()
         self.convtr = apply_parametrization_norm(nn.ConvTranspose2d(*args, **kwargs), norm)
@@ -166,6 +171,7 @@ class StreamableConv1d(nn.Module):
     """Conv1d with some builtin handling of asymmetric or causal padding
     and normalization.
     """
+
     def __init__(self, in_channels: int, out_channels: int,
                  kernel_size: int, stride: int = 1, dilation: int = 1,
                  groups: int = 1, bias: bool = True, causal: bool = False,
@@ -181,6 +187,7 @@ class StreamableConv1d(nn.Module):
                                norm=norm, norm_kwargs=norm_kwargs)
         self.causal = causal
         self.pad_mode = pad_mode
+        assert self.pad_mode == 'circular'
 
     def forward(self, x):
         B, C, T = x.shape
@@ -205,6 +212,7 @@ class StreamableConvTranspose1d(nn.Module):
     """ConvTranspose1d with some builtin handling of asymmetric or causal padding
     and normalization.
     """
+
     def __init__(self, in_channels: int, out_channels: int,
                  kernel_size: int, stride: int = 1, causal: bool = False,
                  norm: str = 'none', trim_right_ratio: float = 1.,

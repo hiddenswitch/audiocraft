@@ -50,7 +50,7 @@ class ChromaExtractor(nn.Module):
         if T < self.nfft:
             pad = self.nfft - T
             r = 0 if pad % 2 == 0 else 1
-            wav = F.pad(wav, (pad // 2, pad // 2 + r), 'constant', 0)
+            wav = F.pad(wav, (pad // 2, pad // 2 + r), 'circular', 0)
             assert wav.shape[-1] == self.nfft, f"expected len {self.nfft} but got {wav.shape[-1]}"
 
         spec = self.spec(wav).squeeze(1)
