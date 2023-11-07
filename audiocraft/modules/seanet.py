@@ -39,6 +39,7 @@ class SEANetResnetBlock(nn.Module):
         act = getattr(nn, activation)
         hidden = dim // compress
         block = []
+        pad_mode = 'circular'
         for i, (kernel_size, dilation) in enumerate(zip(kernel_sizes, dilations)):
             in_chs = dim if i == 0 else hidden
             out_chs = dim if i == len(kernel_sizes) - 1 else hidden
